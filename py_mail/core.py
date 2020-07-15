@@ -1,33 +1,51 @@
 import os
+import sys
 import ssl
 import json
+import inspect
+import getpass
 import smtplib
 import pathlib
 import argparse
+import subprocess
 from email import encoders
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+from .scripts import build_py_mail_config
 
-HERE = pathlib.Path(__file__).parent.resolve()
+#get the install directory for this package
+install_dir = pathlib.Path(
+    inspect.getfile(sys.modules[__name__])).parent.resolve()
 
 class PyMail():
     """Handler class for sending mail
     """
-    def __init__(self, config_path= (HERE / 'config.json'), wd = None):
+    def __init__(self, config_path= (install_dir / 'config.json'),
+                 mail_dir=None):
+        self.user = getpass.getuser()
         self.config_path = config_path
-        self.config = json.load(self.config_path.open())
-        if (wd is not None):
-            #handle alternate wd paths
-            if (type(wd) == str):
-                self.wd = pathlib.Path(wd)
-            if (issubclass(type(wd), pathlib.Path)):
-                self.wd = wd
+        #load config
+        try:
+            with self.config_path.open() as temp:
+                self.config = json.load(temp)
+        except:
+            build_py_mail_config.main(install_dir)
+        finally:
+            with self.config_path.open() as temp:
+                self.config = json.load(temp)
+        #handle alternate mail_dir paths
+        if (mail_dir is not None):
+            if (type(mail_dir) == str):
+                self.mail_dir = pathlib.Path(mail_dir)
+            if (issubclass(type(mail_dir), pathlib.Path)):
+                self.mail_dir = mail_dir
         else:
-            self.wd = pathlib.Path(self.config['wd'])
-        if (self.config['default_profile'] is not None):
+            self.mail_dir = pathlib.Path(self.config[self.user]['mail_dir'])
+        if (self.config[self.user]['default_profile'] is not None):
             self.setup_profile(
-                self.wd / 'ref' / self.config['default_profile'])
+                self.mail_dir / 'ref' / 
+                self.config[self.user]['default_profile'])
         else:
             self.profile_loaded = False
 
@@ -46,8 +64,8 @@ class PyMail():
         if (self.profile_loaded != True):
             print('You must setup a profile to send mail')
             return 1
-        mail_path = pathlib.Path(self.wd / 'mail'/ file)
-        attach_path = pathlib.Path(self.wd / 'files' )
+        mail_path = pathlib.Path(self.mail_dir / 'mail'/ file)
+        attach_path = pathlib.Path(self.mail_dir / 'files' )
         mail = json.load(mail_path.open())
         msg = MIMEMultipart()
         msg['From'] = self.fromaddr
@@ -85,7 +103,7 @@ def send(file, attach_list=None, profile=None):
     """Send an email. 
     Builds a PyMail class using given profile
     Then calls the send mail function for target file's type
-    File will be searched for in PyMail obj's wd attribute
+    File will be searched for in PyMail obj's mail_dir attribute
     """
     mailer = PyMail()
     if (file.endswith('.json') == True):

@@ -1,1 +1,10 @@
-{"wd": "C:\\Users\\Nathan Walton\\py_mail", "default_profile": null}
+{
+    "joe_windows_example": {
+        "mail_dir": "C:\\Users\\Joe\\py_mail",
+        "default_profile": null
+    },
+    "max_linux_example": {
+        "mail_dir": "/home/max/py_mail",
+        "default_profile": null
+    }
+}

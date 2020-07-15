@@ -1,7 +1,25 @@
 import os
+import sys
 import json
+import atexit
+import getpass
 import pathlib
 import setuptools
+import subprocess
+from setuptools.command.install import install
+from py_mail.scripts import build_py_mail_config
+
+
+#override the built in install method to allow for post-install work
+class custom_install(install):
+    def run(self):
+        # atexit method runs after binary wheel creation.
+        # def _post_install():
+            # build_py_mail_config.main(
+                # os.path.join(self.install_purelib, 'py_mail'))
+        #atexit.register(_post_install)
+        install.run(self)
+        build_py_mail_config.main(os.path.join(self.install_purelib, 'py_mail'))
 
 here = pathlib.Path(__file__).parent.resolve()
 
@@ -12,7 +30,7 @@ URL = 'https://github.com/nwalt/py_mail'
 EMAIL = 'nathanhwalton@gmail.com'
 AUTHOR = 'Nathan Walton'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 REQUIRED = []
 
@@ -24,37 +42,19 @@ setuptools.setup(
     url=URL,
     author=AUTHOR,
     author_email=EMAIL,
+    python_requires=REQUIRES_PYTHON,
+    cmdclass={'install':custom_install},
     packages=setuptools.find_packages(),
+    entry_points={'console_scripts':[
+        'py_mail = py_mail.core:main'
+    ]},
     classifiers=[
         "Environment :: Console",
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent"
+        "Operating System :: OS Independent",
     ],
-    python_requires=REQUIRES_PYTHON,
-    entry_points={'console_scripts':[
-        'py_mail = py_mail.core:main'
-    ]}
+    package_data={
+        "":["config.json"]
+    }
+    
 )
-
-# set up working location for mail files/logins and config file for module
-wd = pathlib.Path.home() / 'py_mail'
-if (not wd.exists()):
-    wd.mkdir()
-
-with (here / 'py_mail' / 'config.json').open('w') as config_file:
-    json.dump(
-        {
-            'wd':str(wd),
-            'default_profile':None
-        },
-        config_file
-    )
-locs = [
-    wd / 'mail',
-    wd / 'files',
-    wd / 'ref',
-    wd / 'done'
-]
-for loc in locs:
-    if (not loc.exists()):
-        loc.mkdir()
