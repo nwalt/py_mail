@@ -1,4 +1,7 @@
 # py_mail
+
+Practice Project.
+
 Simple mail tools written in python. 
 
 Currently Supports:
